@@ -5,10 +5,12 @@ def distribute_values(c_est, d):
     n = len(c_est)
     S = sum(x for x in c_est if x is not None)
     diff = n * d - S
+    print(diff)
 
     # Find indices of None values
     none_indices = [i for i, x in enumerate(c_est) if x is None]
     none_count = len(none_indices)
+    print(none_count)
 
     if none_count == 0:
         return c_est  # No None values, return directly
@@ -18,7 +20,7 @@ def distribute_values(c_est, d):
     remainder = diff % none_count  # Remaining part
 
     # Fill None values first
-    base_value = d + avg_add
+    base_value = avg_add
     values = [base_value] * none_count
 
     # Randomly distribute the remainder
