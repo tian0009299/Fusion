@@ -205,4 +205,4 @@ def compute_nn(I, corrupted):
 
 
 if __name__ == "__main__":
-    experiment_active(n=5,d=100,cn=2,R=1000)
+    experiment_active(n=100,d=5,cn=2,R=100000)
