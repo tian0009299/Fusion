@@ -93,6 +93,42 @@ def convert_output_matrix(O):
         numeric_matrix.append(numeric_row)
     return numeric_matrix
 
+def DP_modify_input(I, cn, p):
+    """
+    For each row in I whose 1-indexed index is not in cn,
+    each of its d elements is replaced with a random integer
+    between 1 and n (inclusive) with probability p.
+
+    Parameters:
+        I (list of list of int): An n*d list, where n is the number of rows and each row has d integers.
+        cn (list of int): A list of 1-indexed integers (can be empty) indicating rows to be excluded.
+        p (float): The probability with which each element is replaced.
+
+    Returns:
+        list of list of int: The modified list with replacements.
+    """
+    n = len(I)  # n is the number of rows in I
+    modified_I = []
+
+    # Iterate over each row in I using 0-indexing
+    for idx, row in enumerate(I):
+        # Check if the row's 1-indexed index is in cn
+        if (idx + 1) in cn:
+            # If yes, do not modify this row
+            modified_I.append(row.copy())
+        else:
+            # Otherwise, process each element in the row
+            new_row = []
+            for element in row:
+                # With probability p, replace the element with a random integer in [1, n]
+                if random.random() < p:
+                    new_row.append(random.randint(1, n))
+                else:
+                    new_row.append(element)
+            modified_I.append(new_row)
+
+    return modified_I
+
 
 
 if __name__ == "__main__":
@@ -106,4 +142,5 @@ if __name__ == "__main__":
         [3, 3, 3],
         [5,5,2]
     ]
+
 
