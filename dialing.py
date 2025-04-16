@@ -93,6 +93,7 @@ def convert_output_matrix(O):
         numeric_matrix.append(numeric_row)
     return numeric_matrix
 
+
 def DP_modify_input(I, cn, p):
     """
     For each row in I whose 1-indexed index is not in cn,
@@ -128,7 +129,6 @@ def DP_modify_input(I, cn, p):
             modified_I.append(new_row)
 
     return modified_I
-
 
 
 if __name__ == "__main__":
