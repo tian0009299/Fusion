@@ -15,11 +15,6 @@ def adversary_estimation(n, d, A, B, C, k, R):
         return adversary_accurate.adversary_accurate(n=n, d=d, A=A, B=B, k=k, R=R)
 
 
-def mean_absolute_error(A, B):
-    A, B = np.array(A), np.array(B)
-    return np.mean(np.abs(A - B))
-
-
 def adversary_view(I, adversary_controls, R):
     n = len(I)  # Number of participants
     d = len(I[0])  # Number of invitations sent by each participant
@@ -86,27 +81,6 @@ def calculate_similarity(list1, list2, threshold=1, percentage=0.2):
 
 
 def l1_accurate(c_true, c_hat):
-    """
-    Compute the L1 error based on two lists of integers, c_true and c_hat.
-
-    The function computes the absolute difference for each corresponding element,
-    sums all the differences, normalizes by the sum of c_true, and finally subtracts
-    the normalized value from 1 to produce the error.
-
-    Parameters:
-        c_true (list of int): The list of true values.
-        c_hat (list of int): The list of predicted values.
-
-    Returns:
-        float: The L1 error.
-
-    Example:
-        c_true = [1, 2, 4, 6, 3]
-        c_hat  = [1, 2, 7, 7, 1]
-        Absolute differences: 0, 0, 3, 1, 2 (sum = 6)
-        Sum of c_true: 16
-        L1 error = 1 - (6 / 16) = 0.625
-    """
     if len(c_true) != len(c_hat):
         raise ValueError("c_true and c_hat must have the same length")
 
@@ -193,9 +167,9 @@ def experiment_with_noise(R_list, n, d, cn, dp_p=0, runs_per_R=10):
 
     Parameters:
         R_list (list of int): A list of different R values to test.
-        n (int): Experiment parameter.
-        d (int): Experiment parameter.
-        cn (int): Experiment parameter.
+        n (int): Experiment parameter (the number of participants).
+        d (int): Experiment parameter (the number of the invitations per party).
+        cn (int): Experiment parameter (the amount of the corrupted participants).
         runs_per_R (int): Number of times to run the experiment for each R (default is 10).
         dp_p (float): The probability parameter to be passed when dp=True.
 
@@ -239,6 +213,7 @@ def experiment_with_noise(R_list, n, d, cn, dp_p=0, runs_per_R=10):
     plt.show()
 
     return l1_accurate_normal, l1_accurate_dp
+
 
 if __name__ == "__main__":
     # print(experiment_for_R(R=100, n = 10, d = 5, cn=2))
