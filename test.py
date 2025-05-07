@@ -47,5 +47,3 @@ I = [[1, 1, 1], [4, 4, 5], [3, 3, 4], [2, 4, 3], [1, 1, 1]]
 corrupted = [5,1]
 
 print(compute_nn(I, corrupted))
-#11111
-print(222)

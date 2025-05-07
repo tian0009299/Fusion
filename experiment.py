@@ -3,6 +3,8 @@ import dialing
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import os
+import csv
 
 
 def adversary_estimation(n, d, A, B, C, k, R):
@@ -119,40 +121,111 @@ def experiment_for_R(R, n, d, cn, I, adversary_controls, c_true, k, c_honest_tru
     # Calculate and return the l1_accurate error
     return l1_accurate(c_honest_true, c_honest)
 
+
 def experiment_without_noise(R_list, n, d, cn, runs_per_R=10):
     """
-        For each value in R_list, runs the experiment multiple times and computes the average l1_accurate value.
-        Then plots the relationship between R (x-axis) and the averaged l1_accurate (y-axis).
+    Run the experiment for each R in R_list, compute the average L1 error,
+    and append the results to a CSV file unique to this (n, d, cn) combination.
+    Ensures each row is flushed to disk immediately after writing.
 
-        Parameters:
-            R_list (list of int): A list of different R values to test.
-            n (int): Experiment parameter.
-            d (int): Experiment parameter.
-            cn (int): Experiment parameter.
-            runs_per_R (int): Number of times to run the experiment for each R (default is 10).
-        """
-    I, adversary_controls, c_true, k, c_honest_true = generate_data(n=n, d=d, cn=cn)
-    l1_accurate_averages = []
+    Parameters:
+        R_list (list of int): A list of R values to test.
+        n (int): Experiment parameter n.
+        d (int): Experiment parameter d.
+        cn (int): Experiment parameter cn (number of corrupted nodes).
+        runs_per_R (int): Number of times to run the experiment per R (default 10).
 
-    # Run the experiment for each R in R_list and average the l1_accurate value over multiple runs.
-    for R in R_list:
-        l1_values = []
-        for _ in range(runs_per_R):
-            l1_value = experiment_for_R(R, n, d, cn, I, adversary_controls, c_true, k, c_honest_true)
-            l1_values.append(l1_value)
-        avg_l1 = sum(l1_values) / runs_per_R
-        l1_accurate_averages.append(avg_l1)
+    Returns:
+        list of float: Averaged L1 error values for each R.
+    """
+    # Construct filename based on parameters
+    file_name = f"result\\results_n{n}_d{d}_cn{cn}.csv"
 
-    # Plot the results.
-    plt.figure(figsize=(8, 6))
-    plt.plot(R_list, l1_accurate_averages, marker='o')
-    plt.xlabel("R (Number of Runs)")
-    plt.ylabel("Average L1 Accurate")
-    plt.title("Relationship between R and Average L1 Accurate")
-    plt.grid(True)
-    plt.show()
+    # Open the CSV file in append+ mode (creates file if it doesn't exist)
+    with open(file_name, 'a+', newline='') as f_csv:
+        writer = csv.writer(f_csv)
+
+        # Move to the start and check if file is empty to write header
+        f_csv.seek(0)
+        if not f_csv.read(1):
+            writer.writerow(['R', 'n', 'd', 'cn', 'avg_l1'])
+            # flush header to disk
+            f_csv.flush()
+            os.fsync(f_csv.fileno())
+            print(f"Created and initialized results file: {file_name}")
+
+        # Move back to end for appending data rows
+        f_csv.seek(0, os.SEEK_END)
+
+        # Generate a single dataset for all R runs
+        I, adversary_controls, c_true, k, c_honest_true = generate_data(n=n, d=d, cn=cn)
+        l1_accurate_averages = []
+        print(f"Running experiments for n={n}, d={d}, cn={cn}")
+
+        # Iterate over each R, compute average L1, and append to CSV
+        for R in R_list:
+            # Collect L1 values and compute mean
+            l1_values = [
+                experiment_for_R(R, n, d, cn, I, adversary_controls, c_true, k, c_honest_true)
+                for _ in range(runs_per_R)
+            ]
+            avg_l1 = sum(l1_values) / runs_per_R
+            l1_accurate_averages.append(avg_l1)
+
+            # Append a new row and immediately flush to disk
+            writer.writerow([R, n, d, cn, avg_l1])
+            f_csv.flush()
+            os.fsync(f_csv.fileno())
 
     return l1_accurate_averages
+
+
+
+def experiment_section4(R_list, n, d_list, cn_percent, runs_per_R=10):
+    """
+    For each d in d_list, runs experiment_without_noise over R_list,
+    then plots all average L1 results on one figure, labeling each line by d.
+    Annotates the shared n and computed cn in the title.
+
+    Parameters:
+        R_list (list of int): different R values to test.
+        n (int): experiment parameter.
+        d_list (list of int): different d values to test.
+        cn_percent (float): fraction to compute cn = round(cn_percent * n).
+        runs_per_R (int): how many repeats per R (default 10).
+
+    Returns:
+        dict: mapping each d to its list of averaged l1_accurate values.
+    """
+    # compute cn
+    cn = round(cn_percent * n)
+
+    # collect results
+    results = {}
+    for d in d_list:
+        l1_averages = experiment_without_noise(
+            R_list=R_list,
+            n=n,
+            d=d,
+            cn=cn,
+            runs_per_R=runs_per_R
+        )
+        results[d] = l1_averages
+
+    # plot
+    plt.figure(figsize=(8, 6))
+    for d, averages in results.items():
+        plt.plot(R_list, averages, marker='o', label=f'd = {d}')
+    plt.xlabel("R (Number of Runs)")
+    plt.ylabel("Average L1 Accurate")
+    plt.title(f"n = {n}, cn = {cn} (cn_percent = {cn_percent})")
+    plt.legend(title="d values")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    return results
+
 
 
 def experiment_with_noise(R_list, n, d, cn, dp_p=0, runs_per_R=10):
@@ -216,7 +289,12 @@ def experiment_with_noise(R_list, n, d, cn, dp_p=0, runs_per_R=10):
 
 
 if __name__ == "__main__":
-    # print(experiment_for_R(R=100, n = 10, d = 5, cn=2))
-    R = [1, 10,50,200,500,1000,5000,10000]
-    #print(experiment_without_noise(R_list=R, n=50, d=5, cn=2))
-    print(experiment_with_noise(R_list=R, n=50, d=5,cn=2,dp_p=0.2))
+
+    R_list = [256]
+    n = 100
+    d_list = [1,2,4,8,16,32]
+    cn_percent = 0.03
+
+
+    results = experiment_section4(R_list, n, d_list, cn_percent, runs_per_R=15)
+
