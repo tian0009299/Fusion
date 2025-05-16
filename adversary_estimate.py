@@ -41,10 +41,11 @@ def adversary_estimate(n, d, A, B, C, k, R):
     # U1 contains elements where B[i] > 0, and U2 contains elements where B[i] == 0
     U1 = [i for i in U if B[i] > 0]
     U2 = [i for i in U if B[i] == 0]
+    c_est = Part2.solve_integer_planning_problem_v4(c_est, C, B, k, d, S_unknown)
 
-    c_est = Part2.solve_integer_planning_problem_v2(c_est=c_est, C=C, B=B, k=k, d=d, U1=U1, U2=U2, S_unknown=S_unknown,
-                                                    epsilon=0.1, solver=None)
-    c_est = Part3.distribute_values(c_est, d)
+    # c_est = Part2.solve_integer_planning_problem_v2(c_est=c_est, C=C, B=B, k=k, d=d, U1=U1, U2=U2, S_unknown=S_unknown,
+    #                                                 epsilon=0.1, solver=None)
+    # c_est = Part3.distribute_values(c_est, d)
 
     c_honest = [c_est[i] - k[i] for i in range(len(c_est))]
 

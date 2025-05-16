@@ -47,7 +47,8 @@ def adversary_view(I, adversary_controls, R):
     return A, B, C
 
 
-def generate_data(n, d, cn):
+def generate_data(n, d, h):
+    cn = round(h*n)
     I = [[random.randint(1, n) for _ in range(d)] for _ in range(n)]
     corrupted = random.sample(range(1, n + 1), cn)
 
@@ -158,7 +159,7 @@ def experiment_without_noise(R_list, n, d, cn, runs_per_R=10):
         f_csv.seek(0, os.SEEK_END)
 
         # Generate a single dataset for all R runs
-        I, adversary_controls, c_true, k, c_honest_true = generate_data(n=n, d=d, cn=cn)
+        I, adversary_controls, c_true, k, c_honest_true = generate_data(n=n, d=d, h=1-(cn/n))
         l1_accurate_averages = []
         print(f"Running experiments for n={n}, d={d}, cn={cn}")
 
@@ -290,10 +291,10 @@ def experiment_with_noise(R_list, n, d, cn, dp_p=0, runs_per_R=10):
 
 if __name__ == "__main__":
 
-    R_list = [256]
+    R_list = [1,5,10,20,40,100,200]
     n = 100
-    d_list = [1,2,4,8,16,32]
-    cn_percent = 0.03
+    d_list = [1,2,5,10,20]
+    cn_percent = 0.1
 
 
     results = experiment_section4(R_list, n, d_list, cn_percent, runs_per_R=15)
