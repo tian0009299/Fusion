@@ -1,4 +1,6 @@
 import random
+import numpy as np
+import cupy as cp
 
 
 class Invitation:
@@ -82,6 +84,173 @@ def assign_invitations(I):
     return O
 
 
+def assign_invitations_fast(I):
+    """
+    Input:
+        I: An n×d list of lists, where each element is an int in [0..n-1]
+           indicating the intended receiver (0-based).
+    Output:
+        O: An n×d list of lists, where each element is the final receiver (0-based).
+    """
+    n = len(I)
+    if n == 0:
+        return []
+    d = len(I[0])
+
+    # 1) Group all invitation positions (i,j) by their intended receiver
+    received_by = [[] for _ in range(n)]
+    for i in range(n):
+        for j in range(d):
+            user = I[i][j]
+            received_by[user].append((i, j))
+
+    # 2) Prepare output matrix and helper structures
+    O = [[None] * d for _ in range(n)]
+    accepted_by = [[] for _ in range(n)]
+    extra_invitations = []
+
+    # 3) For each user, accept up to d invitations; surplus go to extra_invitations
+    for user in range(n):
+        inv_list = received_by[user]
+        if len(inv_list) <= d:
+            # Accept all if count ≤ d
+            for (i, j) in inv_list:
+                O[i][j] = user
+                accepted_by[user].append((i, j))
+        else:
+            # Otherwise randomly pick d to accept
+            accepted = random.sample(inv_list, d)
+            for (i, j) in accepted:
+                O[i][j] = user
+                accepted_by[user].append((i, j))
+            # The rest become extra
+            for (i, j) in inv_list:
+                if (i, j) not in accepted:
+                    extra_invitations.append((i, j))
+
+    # 4) Compute how many more each user needs
+    deficiency = [d - len(accepted_by[user]) for user in range(n)]
+
+    # 5) Randomly redistribute extras to users with remaining deficiency
+    while extra_invitations:
+        candidates = [u for u in range(n) if deficiency[u] > 0]
+        if not candidates:
+            # Should not happen if total extras == total deficiency
+            break
+        i, j = extra_invitations.pop()
+        user = random.choice(candidates)
+        O[i][j] = user
+        accepted_by[user].append((i, j))
+        deficiency[user] -= 1
+
+    # 6) Verify every slot got assigned
+    for i in range(n):
+        for j in range(d):
+            if O[i][j] is None:
+                raise ValueError(f"Position {(i, j)} was never assigned")
+
+    return O
+
+def assign_invitations_numpy(I: np.ndarray, seed: int = None) -> np.ndarray:
+    """
+    对输入的 n×d 矩阵 I，按以下规则生成同形状的 O：
+      1. 初始化 O 全为 -1。
+      2. 统计每个 k∈{0,…,n-1} 在 I 中出现的次数 count[k]。
+      3. 对于 count[k] <= d，保留 I 中所有值为 k 的位置；对于 count[k] > d，随机挑 d 个位置保留。
+      4. 对于 count[k] < d，最后再从剩余的 “-1” 位置里随机补齐到恰好 d 个 k。
+    :param I: 整数矩阵，shape=(n,d)，元素 ∈ [0, n-1]
+    :param seed: 随机种子（可选）
+    :return: 整数矩阵 O，shape=(n,d)，元素 ∈ {−1, 0,…,n−1}
+    """
+    rng = np.random.default_rng(seed)
+    n, d = I.shape
+
+    # 1) 初始化
+    O = -np.ones_like(I, dtype=int)
+
+    # 2) 统计出现次数
+    counts = np.bincount(I.ravel(), minlength=n)
+
+    # 3) 按上限 d 先赋值
+    for k in range(n):
+        # 找到所有 I == k 的坐标
+        idx = np.argwhere(I == k)  # shape=(counts[k], 2)
+        c = counts[k]
+        if c <= d:
+            # 全部保留
+            O[I == k] = k
+        else:
+            # 随机挑 d 个
+            chosen = idx[rng.choice(c, size=d, replace=False)]
+            O[chosen[:,0], chosen[:,1]] = k
+
+    # 4) 对 count[k] < d 的 k，从剩余空位中补齐
+    deficits = np.maximum(d - counts, 0)       # 每个 k 还需要补的数量
+    free_slots = np.argwhere(O == -1)          # 所有还未赋值的位置
+    perm = rng.permutation(len(free_slots))
+
+    offset = 0
+    for k in range(n):
+        need = deficits[k]
+        if need > 0:
+            sel = free_slots[perm[offset : offset + need]]
+            O[sel[:,0], sel[:,1]] = k
+            offset += need
+
+    return O
+
+def assign_invitations_cupy(I: cp.ndarray, seed: int = None) -> np.ndarray:
+    """
+    对输入的 n×d 矩阵 I，按以下规则生成同形状的 O：
+      1. 初始化 O 全为 -1。
+      2. 统计每个 k∈{0,…,n-1} 在 I 中出现的次数 count[k]。
+      3. 对于 count[k] <= d，保留 I 中所有值为 k 的位置；对于 count[k] > d，随机挑 d 个位置保留。
+      4. 对于 count[k] < d，最后再从剩余的 “-1” 位置里随机补齐到恰好 d 个 k。
+    :param I: 整数矩阵，shape=(n,d)，元素 ∈ [0, n-1]
+    :param seed: 随机种子（可选）
+    :return: 整数矩阵 O，shape=(n,d)，元素 ∈ {−1, 0,…,n−1}
+    """
+
+    n, d = I.shape
+
+    # 1) 初始化
+    O = -cp.ones_like(I, dtype=int)
+
+    # 2) 统计出现次数
+    counts = cp.bincount(I.ravel(), minlength=n)
+
+    # 3) 按上限 d 先赋值
+    for k in range(n):
+        idx = cp.argwhere(I == k)  # shape=(counts[k], 2)
+        c = counts[k]
+        if c <= d:
+            O[I == k] = k
+        else:
+            c_py = int(c)
+            perm = cp.random.permutation(c_py)
+            sel = perm[:d]
+            chosen = idx[sel]
+            O[chosen[:, 0], chosen[:, 1]] = k
+
+    # 4) 对 count[k] < d 的 k，从剩余空位中补齐
+    deficits = cp.maximum(d - counts, 0)  # cupy array
+    free_slots = cp.argwhere(O == -1)  # shape=(num_free, 2)
+
+    # 改这里：不要用 rng.permutation，转为 Python int 后用全局 permutation
+    num_free = int(free_slots.shape[0])
+    perm = cp.random.permutation(num_free)
+
+    offset = 0
+    for k in range(n):
+        need = int(deficits[k])  # 把 cupy scalar 转成 Python int
+        if need > 0:
+            sel = free_slots[perm[offset: offset + need]]
+            O[sel[:, 0], sel[:, 1]] = k
+            offset += need
+
+    return O
+
+
 def convert_output_matrix(O):
     """
     Convert the output matrix O (a matrix of Invitation objects) into a numeric matrix.
@@ -142,5 +311,11 @@ if __name__ == "__main__":
         [3, 3, 3],
         [5,5,2]
     ]
+
+    for i in range(5):
+        for j in range(3):
+            I[i][j] -= 1
+    print(I)
+    print(assign_invitations_fast(I))
 
 

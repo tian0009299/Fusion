@@ -60,7 +60,7 @@ def plot_accuracy_by_rounds(n, h, d_list, result_dir='result'):
     plt.figure(figsize=(8, 5))
 
     for d in d_list:
-        filename = os.path.join(result_dir, f"result_n{n}_d{d}_h{h}.csv")
+        filename = os.path.join(result_dir, f"dialingresult_n{n}_d{d}_h{h}.csv")
         if not os.path.isfile(filename):
             print(f"Warning: file not found, skipping d={d}: {filename}")
             continue
@@ -77,7 +77,7 @@ def plot_accuracy_by_rounds(n, h, d_list, result_dir='result'):
     plt.show()
 
 if __name__ == '__main__':
-    plot_accuracy_by_rounds(n=10000,h=0.9,d_list=[1,2,5,10,20])
+    plot_accuracy_by_rounds(n=10000,h=0.7,d_list=[1,2,5,10,20,40])
 
 
 
