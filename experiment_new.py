@@ -740,9 +740,9 @@ def run_experiments(n, R_list, runs=30):
     不打印、不存储，只依赖 experiment_for_multiple_inputs 自身的 CSV 输出。
     """
     param_grid = {
-        0.7: [1,2,5,10,20],
-        0.9:  [1,2,5,10,20],
-        0.97: [1,2,5,10,20],
+        0.7: [10,20],
+        0.9:  [10,20],
+        0.97: [10,20],
     }
 
     all_ds = sorted({d for d_list in param_grid.values() for d in d_list})
@@ -766,7 +766,7 @@ if __name__ == "__main__":
     n = 50000
     R_list = [1,5,10,20,50,75,100]
     # print(experiment_for_multiple_inputs_numpy(n, d, h, R_list, runs=10))
-    run_experiments(n, R_list, runs=10)
+    run_experiments(n, R_list, runs=3)
 
 
 

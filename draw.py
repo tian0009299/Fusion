@@ -69,15 +69,15 @@ def plot_accuracy_by_rounds(n, h, d_list, result_dir='result'):
         plt.plot(df['R'], df['accuracy'], marker='o', label=f"d = {d}")
 
     plt.xlabel("Number of rounds (R)")
-    plt.ylabel("L₁ accuracy")
-    plt.title(f"Accuracy vs. Rounds (n={n}, h={h})")
+    plt.ylabel("Accuracy")
+    plt.title(f"")
     plt.legend(title="d values")
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.tight_layout()
     plt.show()
 
 if __name__ == '__main__':
-    plot_accuracy_by_rounds(n=10000,h=0.7,d_list=[1,2,5,10,20,40])
+    plot_accuracy_by_rounds(n=50000,h=0.97,d_list=[1,2,5,10,20])
 
 
 
